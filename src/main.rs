@@ -12,7 +12,9 @@ fn main() {
     let contents = format!("{}\t{}\n", key, value);
     std::fs::write("kb.db", contents).unwrap();
 
-    let database = Database::new();
+    let database = Database::new().expect("Creating DB failed.");
+    database.insert(key.to_uppercase(), value.clone());
+    database.insert(key, value);
 }
 
 struct Database {
@@ -21,20 +23,24 @@ struct Database {
 
 impl Database {
     fn new() -> Result<Database, std::io::Error> {
-        // let contents = match std::fs::read_to_string("kb.db") {
-        //     Ok(contents) => contents,
-        //     Err(error) => {
-        //         return Err(error);
-        //     }
-        // };
-        
+        let mut map = HashMap::new();
+
         let contents = std::fs::read_to_string("kb.db")?;
 
         for line in contents.lines() {
-            let pair = line.split_once('\t').expect("Corrupted file");
+            let mut chunks = line.splitn(2, '\t');
+            let key = chunks.next().expect("No Key");
+            let value = chunks.next().expect("No Value");
+
+            map.insert(key.to_owned(), value.to_owned());
         }
-        Database {
-            map: HashMap::new();
-        }
-    } 
+        Ok(Database {
+            map: map
+        })
+    }
+    
+    fn insert(&mut self, key: String, value: String) {
+        self.map.insert(key, value);
+    }
+
 }
